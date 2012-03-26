@@ -6,18 +6,18 @@ use YAML qw(LoadFile);
 use Data::Dumper;
 use Readonly;
 use Text::Roman;
+use File::Slurp qw(read_file);
+use Class::CSV;
+use Class::Date;
 
-Readonly::Scalar my $UMLESSONS_URL => q{https://lessons.ummu.umich.edu};
-Readonly::Scalar my $EMPTY         => q{};
-Readonly::Scalar my $BANG          => q{!};
+Readonly::Scalar my $EMPTY               => q{};
+Readonly::Scalar my $BANG                => q{!};
+Readonly::Scalar my $COMMA               => q{,};
+Readonly::Scalar my $UMLESSONS_URL       => q{https://lessons.ummu.umich.edu};
+Readonly::Scalar my $STUDENT_LIST        => qq($ENV{HOME}/tmp/11_12_students.csv);
+Readonly::Scalar my $PUBLISH_DATE_FORMAT => q{%x %I:%S %p};
 
-my $agent    = get_login_agent();
-my $students = [
-  {
-    name     => 'Test User',
-    uniqname => 'uniqname',
-  },
-];
+Readonly::Array my @STUDENT_HEADERS => (qw(emplid first_name last_name advisor coadvisor assiting_fall assiting_winter uniqname));
 
 ## no tidy
 my $question_ref = {
@@ -51,10 +51,32 @@ my $question_ref = {
 };
 ## end no tidy
 
-foreach my $student_ref (@{$students}) {
-  say "Creating survey for $student_ref->{name}";
+my @students = get_students();
+my $agent    = get_login_agent();
+
+foreach my $student_ref (@students) {
+  say "Creating survey for $student_ref->{uniqname}";
   create_survey($student_ref);
-  add_questions();
+
+  say "\tAdding questions to survey";
+  add_questions($student_ref);
+
+  say "\tPublishing survey";
+  publish_survey($student_ref);
+}
+
+sub get_students {
+  my $csv = Class::CSV->parse(
+    filename => $STUDENT_LIST,
+    fields   => \@STUDENT_HEADERS,
+  );
+
+  foreach my $line (@{$csv->lines()}) {
+    my %student =  map { $_ => lc($line->$_) } @STUDENT_HEADERS;
+    push @students, \%student;
+  }
+
+  return @students;
 }
 
 sub get_login_agent {
@@ -78,8 +100,11 @@ sub get_login_agent {
 sub create_survey {
   my ($student) = @_;
 
+  my $first_name  = ucfirst($student->{first_name});
+  my $last_name   = ucfirst($student->{last_name});
+
   my $uniqname    = $student->{uniqname};
-  my $description = qq(Survey for $student->{name}.);
+  my $description = qq(Survey for $first_name $last_name.);
 
   $agent->post(
     qq{$UMLESSONS_URL/2k/manage/lesson/setup/unit_4631}, {
@@ -122,17 +147,37 @@ sub create_survey {
   return $agent;
 }
 
+sub publish_survey {
+  my ($student) = @_;
+
+  my $now = Class::Date->now();
+
+  $agent->post(
+    qq($UMLESSONS_URL/2k/manage/lesson/publish/unit_4631/$student->{uniqname}), {
+      op            => 'save',
+      whenAvailable => 'scheduled',
+      WhenCanReview => 'FALSE',
+      WhenDue       => undef,
+      WhenOpen      => $now->strftime($PUBLISH_DATE_FORMAT),
+    }
+  );
+
+  return;
+}
+
 sub add_questions {
+  my ($student) = @_;
+
   foreach my $key (sort keys %{$question_ref}) {
     my $type      = $question_ref->{$key}->{type};
     my $question  = $question_ref->{$key}->{question};
 
     if ($type eq 'multiple_choice') {
       my $responses = $question_ref->{$key}->{responses};
-      _create_multi_choice_question($question, $responses);
+      _create_multi_choice_question($student->{uniqname}, $question, $responses);
 
     } elsif ($type eq 'short_answer') {
-      _create_short_answer_question($question);
+      _create_short_answer_question($student->{uniqname}, $question);
 
     }
   }
@@ -141,10 +186,10 @@ sub add_questions {
 }
 
 sub _create_multi_choice_question {
-  my ($question, $responses) = @_;
+  my ($uniqname, $question, $responses) = @_;
 
   $agent->post(
-    qq{$UMLESSONS_URL/2k/manage/inquiry/create/unit_4631/uniqname}, {
+    qq{$UMLESSONS_URL/2k/manage/inquiry/create/unit_4631/$uniqname}, {
       question                             => $question,
       choice                               => 'multiple_choice',
       op                                   => 'Save',
@@ -168,7 +213,7 @@ sub _create_multi_choice_question {
     my $order    = qq{c$roman.$resp_pos};
 
     $agent->post(
-      qq{$UMLESSONS_URL/2k/manage/multiple_choice/update_content/unit_4631/uniqname\$$id}, {
+      qq{$UMLESSONS_URL/2k/manage/multiple_choice/update_content/unit_4631/$uniqname\$$id}, {
         op               => 'save',
         order            => $order,
         qq{order.$order} => $order,
@@ -182,10 +227,10 @@ sub _create_multi_choice_question {
 }
 
 sub _create_short_answer_question {
-  my ($question) = @_;
+  my ($uniqname, $question) = @_;
 
   $agent->post(
-    qq{$UMLESSONS_URL/2k/manage/inquiry/create/unit_4631/uniqname}, {
+    qq{$UMLESSONS_URL/2k/manage/inquiry/create/unit_4631/$uniqname}, {
       op                                   => 'Save',
       question                             => $question,
       choice                               => 'short_answer',
