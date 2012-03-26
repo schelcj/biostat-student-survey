@@ -8,6 +8,8 @@ use Readonly;
 use Text::Roman;
 
 Readonly::Scalar my $UMLESSONS_URL => q{https://lessons.ummu.umich.edu};
+Readonly::Scalar my $EMPTY         => q{};
+Readonly::Scalar my $BANG          => q{!};
 
 my $agent    = get_login_agent();
 my $students = [
@@ -51,10 +53,8 @@ my $question_ref = {
 
 foreach my $student_ref (@{$students}) {
   say "Creating survey for $student_ref->{name}";
-  create_survey($agent, $student_ref);
-
-  say "\tAdding questions to the survey";
-  add_questions($agent, $question_ref);
+  create_survey($student_ref);
+  add_questions();
 }
 
 sub get_login_agent {
@@ -76,7 +76,7 @@ sub get_login_agent {
 }
 
 sub create_survey {
-  my ($agent, $student) = @_;
+  my ($student) = @_;
 
   my $uniqname    = $student->{uniqname};
   my $description = qq(Survey for $student->{name}.);
@@ -90,16 +90,16 @@ sub create_survey {
 
   $agent->post(
     qq{$UMLESSONS_URL/2k/manage/lesson/update_settings/unit_4631}, {
-      charset               => '!',
+      charset               => $BANG,
       firstItemFirst        => 'FALSE',
       howManyItemsDisplayed => 'ALL',
-      keywords              => '',
+      keywords              => $EMPTY,
       lastItemLast          => 'FALSE',
       name                  => $uniqname,
       navigationOptions     => 'random-access',
       new_setup             => '1',
       op                    => 'save',
-      other_charset         => '',
+      other_charset         => $EMPTY,
       presentationStyle     => 'single-page',
       randomization         => 'FALSE',
       repeatOptions         => 'infinite',
@@ -123,22 +123,25 @@ sub create_survey {
 }
 
 sub add_questions {
-  my ($agent, $question_ref) = @_;
-
   foreach my $key (sort keys %{$question_ref}) {
-    my $title     = $key;
     my $type      = $question_ref->{$key}->{type};
     my $question  = $question_ref->{$key}->{question};
 
     if ($type eq 'multiple_choice') {
       my $responses = $question_ref->{$key}->{responses};
-      _create_multi_choice_question($agent, $title, $question, $responses);
+      _create_multi_choice_question($question, $responses);
+
+    } elsif ($type eq 'short_answer') {
+      _create_short_answer_question($question);
+
     }
   }
+
+  return;
 }
 
 sub _create_multi_choice_question {
-  my ($agent, $title, $question, $responses) = @_;
+  my ($question, $responses) = @_;
 
   $agent->post(
     qq{$UMLESSONS_URL/2k/manage/inquiry/create/unit_4631/uniqname}, {
@@ -153,7 +156,7 @@ sub _create_multi_choice_question {
     }
   );
 
-  my $id = '';
+  my $id = $EMPTY;
   if ($agent->response->base->path =~ m/\$([\w]+)$/g) {
     $id = $1;
   }
@@ -174,4 +177,25 @@ sub _create_multi_choice_question {
       }
     );
   }
+
+  return;
+}
+
+sub _create_short_answer_question {
+  my ($question) = @_;
+
+  $agent->post(
+    qq{$UMLESSONS_URL/2k/manage/inquiry/create/unit_4631/uniqname}, {
+      op                                   => 'Save',
+      question                             => $question,
+      choice                               => 'short_answer',
+      'multiple_choice:numberAnswers'      => 7,
+      'multiple_response:numberAnswers'    => 4,
+      'rating_scales:numberAnswers'        => 1,
+      'opinion_poll:numberAnswers'         => 5,
+      'rating_scale_queries:numberAnswers' => 5,
+    }
+  );
+
+  return;
 }
