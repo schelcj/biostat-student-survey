@@ -16,6 +16,7 @@ Readonly::Scalar my $COMMA               => q{,};
 Readonly::Scalar my $UMLESSONS_URL       => q{https://lessons.ummu.umich.edu};
 Readonly::Scalar my $STUDENT_LIST        => qq($ENV{HOME}/tmp/11_12_students.csv);
 Readonly::Scalar my $PUBLISH_DATE_FORMAT => q{%x %I:%S %p};
+Readonly::Scalar my $SUMMARY             => q{This survey is a part of student evaluation in the Department of Biostatistics, the School of Public Health. Please choose the options that fits best to describe student's academic performance and performance as a GSI and/or GSRA. Please provide some written comments on each student in the boxes provided. These comments will incorporated in a letter containing summary of evaluations sent to each student.};
 
 Readonly::Array my @STUDENT_HEADERS => (qw(emplid first_name last_name advisor coadvisor assiting_fall assiting_winter uniqname));
 
@@ -99,12 +100,7 @@ sub get_login_agent {
 
 sub create_survey {
   my ($student) = @_;
-
-  my $first_name  = ucfirst($student->{first_name});
-  my $last_name   = ucfirst($student->{last_name});
-
-  my $uniqname    = $student->{uniqname};
-  my $description = qq(Survey for $first_name $last_name.);
+  my $uniqname  = $student->{uniqname};
 
   $agent->post(
     qq{$UMLESSONS_URL/2k/manage/lesson/setup/unit_4631}, {
@@ -138,13 +134,13 @@ sub create_survey {
 
   $agent->post(
     qq{$UMLESSONS_URL/2k/manage/lesson/update_content/unit_4631\$unit_4631/$uniqname}, {
-      directionsText => $description,
+      directionsText => $SUMMARY,
       op             => 'save',
       section        => 'directions',
     }
   );
 
-  return $agent;
+  return;
 }
 
 sub publish_survey {
