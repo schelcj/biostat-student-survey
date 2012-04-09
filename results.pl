@@ -23,9 +23,7 @@ my $agent    = get_login_agent();
 my @students = get_students();
 
 foreach my $student_ref (@students) {
-  next if $student_ref->{uniqname} =~ /aabydava|cheyu/;
-
-  my $file    = File::Temp->new(UNLINK => 0);
+  my $file    = File::Temp->new();
   my $results = get_results($student_ref->{uniqname});
 
   write_file($file->filename, $results);
@@ -84,10 +82,12 @@ sub add_to_summary {
                  fields   => \@EXPORT_HEADERS,
                );
 
-  my $line   = $csv->lines()->[1];
-  my $result = {map {$_ => $line->$_} @EXPORT_HEADERS};
+  my $line = $csv->lines()->[1];
 
-  $summary->add_line($result);
+  if {$line) {
+    my $result = {map {$_ => $line->$_} @EXPORT_HEADERS};
+    $summary->add_line($result);
+  }
 
   return;
 }
