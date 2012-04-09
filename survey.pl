@@ -67,17 +67,18 @@ foreach my $student_ref (@students) {
 }
 
 sub get_students {
-  my $csv = Class::CSV->parse(
+  my @list   = ();
+  my $csv    = Class::CSV->parse(
     filename => $STUDENT_LIST,
     fields   => \@STUDENT_HEADERS,
   );
 
   foreach my $line (@{$csv->lines()}) {
     my %student =  map { $_ => lc($line->$_) } @STUDENT_HEADERS;
-    push @students, \%student;
+    push @list, \%student;
   }
 
-  return @students;
+  return @list;
 }
 
 sub get_login_agent {
