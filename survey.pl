@@ -57,13 +57,13 @@ my $agent    = get_login_agent();
 
 foreach my $student_ref (@students) {
   say "Creating survey for $student_ref->{uniqname}";
-  create_survey($student_ref);
+  create_survey($student_ref->{uniqname});
 
   say "\tAdding questions to survey";
-  add_questions($student_ref);
+  add_questions($student_ref->{uniqname});
 
   say "\tPublishing survey";
-  publish_survey($student_ref);
+  publish_survey($student_ref->{uniqname});
 }
 
 sub get_students {
@@ -99,8 +99,7 @@ sub get_login_agent {
 }
 
 sub create_survey {
-  my ($student) = @_;
-  my $uniqname  = $student->{uniqname};
+  my ($uniqname) = @_;
 
   $agent->post(
     qq{$UMLESSONS_URL/2k/manage/lesson/setup/unit_4631}, {
@@ -144,12 +143,12 @@ sub create_survey {
 }
 
 sub publish_survey {
-  my ($student) = @_;
+  my ($uniqname) = @_;
 
   my $now = Class::Date->now();
 
   $agent->post(
-    qq($UMLESSONS_URL/2k/manage/lesson/publish/unit_4631/$student->{uniqname}), {
+    qq($UMLESSONS_URL/2k/manage/lesson/publish/unit_4631/$uniqname), {
       op            => 'save',
       whenAvailable => 'scheduled',
       WhenCanReview => 'FALSE',
@@ -162,7 +161,7 @@ sub publish_survey {
 }
 
 sub add_questions {
-  my ($student) = @_;
+  my ($uniqname) = @_;
 
   foreach my $key (sort keys %{$question_ref}) {
     my $type      = $question_ref->{$key}->{type};
@@ -170,10 +169,10 @@ sub add_questions {
 
     if ($type eq 'multiple_choice') {
       my $responses = $question_ref->{$key}->{responses};
-      _create_multi_choice_question($student->{uniqname}, $question, $responses);
+      _create_multi_choice_question($uniqname, $question, $responses);
 
     } elsif ($type eq 'short_answer') {
-      _create_short_answer_question($student->{uniqname}, $question);
+      _create_short_answer_question($uniqname, $question);
 
     }
   }
