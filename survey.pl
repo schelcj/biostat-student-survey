@@ -15,7 +15,7 @@ Readonly::Scalar my $EMPTY               => q{};
 Readonly::Scalar my $BANG                => q{!};
 Readonly::Scalar my $COMMA               => q{,};
 Readonly::Scalar my $UMLESSONS_URL       => q{https://lessons.ummu.umich.edu};
-Readonly::Scalar my $STUDENT_LIST        => qq($ENV{HOME}/tmp/11_12_students.csv);
+Readonly::Scalar my $STUDENT_LIST        => qq(11_12_students.csv);
 Readonly::Scalar my $PUBLISH_DATE_FORMAT => q{%x %I:%S %p};
 Readonly::Scalar my $SUMMARY             => q{This survey is a part of student evaluation in the Department of Biostatistics, the School of Public Health. Please choose the options that fits best to describe student's academic performance and performance as a GSI and/or GSRA. Please provide some written comments on each student in the boxes provided. These comments will incorporated in a letter containing summary of evaluations sent to each student.};
 

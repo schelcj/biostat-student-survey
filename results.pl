@@ -12,7 +12,7 @@ use File::Temp;
 
 Readonly::Scalar my $UMLESSONS_URL => q{https://lessons.ummu.umich.edu};
 Readonly::Scalar my $EXPORT_URL    => qq{$UMLESSONS_URL/2k/manage/lesson/reports/stats_dataCSV/unit_4631/%s?op=data&mode=response&report_archives=no&sequence=n/a&delim=comma};
-Readonly::Scalar my $STUDENT_LIST  => qq($ENV{HOME}/tmp/11_12_students.csv);
+Readonly::Scalar my $STUDENT_LIST  => qq(11_12_students.csv);
 Readonly::Scalar my $SUMMARY       => q{studnet_survey_summary.csv};
 
 Readonly::Array my @EXPORT_HEADERS  => (qw(number setup submitted umid uniqname respondent duration q1 q2 q3 q4 q5 q6));
