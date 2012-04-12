@@ -9,6 +9,7 @@ use Text::Roman;
 use File::Slurp qw(read_file);
 use Class::CSV;
 use Class::Date;
+use Text::Autoformat;
 
 Readonly::Scalar my $EMPTY               => q{};
 Readonly::Scalar my $BANG                => q{!};
@@ -56,8 +57,11 @@ my @students = get_students();
 my $agent    = get_login_agent();
 
 foreach my $student_ref (@students) {
-  say "Creating survey for $student_ref->{uniqname}";
-  create_survey($student_ref->{uniqname});
+  my $full_name = autoformat qq($student_ref->{first_name} $student_ref->{last_name}), { case => 'title' };
+  $full_name =~ s/[\r\n]+//g;
+
+  say "Creating survey for $full_name ( $student_ref->{uniqname} )";
+  create_survey($student_ref->{uniqname}, $full_name);
 
   say "\tAdding questions to survey";
   add_questions($student_ref->{uniqname});
@@ -100,7 +104,7 @@ sub get_login_agent {
 }
 
 sub create_survey {
-  my ($uniqname) = @_;
+  my ($uniqname,$name) = @_;
 
   $agent->post(
     qq{$UMLESSONS_URL/2k/manage/lesson/setup/unit_4631}, {
@@ -128,7 +132,7 @@ sub create_survey {
       showFooter            => 'TRUE',
       showLinks             => 'TRUE',
       style                 => 'survey',
-      title                 => $uniqname,
+      title                 => $name,
     }
   );
 
