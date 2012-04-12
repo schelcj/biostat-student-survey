@@ -84,7 +84,7 @@ sub add_to_summary {
 
   my $line = $csv->lines()->[1];
 
-  if {$line) {
+  if ($line) {
     my $result = {map {$_ => $line->$_} @EXPORT_HEADERS};
     $summary->add_line($result);
   }
