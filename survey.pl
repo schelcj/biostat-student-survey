@@ -17,7 +17,7 @@ Readonly::Scalar my $COMMA               => q{,};
 Readonly::Scalar my $UMLESSONS_URL       => q{https://lessons.ummu.umich.edu};
 Readonly::Scalar my $STUDENT_LIST        => $ARGV[0];
 Readonly::Scalar my $PUBLISH_DATE_FORMAT => q{%x %I:%S %p};
-Readonly::Scalar my $SUMMARY             => q{This survey is a part of student evaluation in the Department of Biostatistics, the School of Public Health. Please choose the options that fits best to describe student's academic performance and performance as a GSI and/or GSRA. Please provide some written comments on each student in the boxes provided. These comments will incorporated in a letter containing summary of evaluations sent to each student.};
+Readonly::Scalar my $SUMMARY             => q{This survey is part of the Annual Student Evaluation in the Department of Biostatistics, School of Public Health. Please choose the options that best describe your student's academic performance and performance as a GSI and/or GSRA. Please provide some written comments on each student in the boxes provided, if applicable. These comments will be used to prepare the evaluation letter sent to each student.};
 
 Readonly::Array my @STUDENT_HEADERS => (qw(name empl_id uniqname advisor));
 
