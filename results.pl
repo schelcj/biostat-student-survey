@@ -25,16 +25,13 @@ my @students = get_students();
 $summary->add_line({map {$_ => $_} @EXPORT_HEADERS});
 
 foreach my $student_ref (@students) {
-  my $file    = File::Temp->new(UNLINK => 0, DIR => '/dev/shm', SUFFIX => '.csv', );
-  my $results = get_results($student_ref->{uniqname});
-
-  write_file($file->filename, $results);
+  my $export = get_export($student_ref->{uniqname});
 
   try {
-    add_to_summary($file->filename, $student_ref->{uniqname});
-    $file->unlink_on_destroy(1);
+    add_to_summary($export, $student_ref->{uniqname}, $student_ref->{empl_id});
   } catch {
     say "Failed to parse results for $student_ref->{uniqname}";
+    unlink $export;
   };
 }
 
@@ -66,17 +63,27 @@ sub get_students {
   );
 
   foreach my $line (@{$csv->lines()}) {
-    my %student = map {$_ => lc($line->$_)} @STUDENT_HEADERS;
-    push @list, \%student;
+    push @list, {map {$_ => lc($line->$_)} @STUDENT_HEADERS};
   }
 
   return @list;
 }
 
+sub get_export {
+  my ($uniqname) = @_;
+
+  my $path = qq(/dev/shm/$uniqname.csv);
+  return $path if -e $path;
+
+  write_file($path, get_results($uniqname));
+
+  return $path;
+}
+
 sub get_results {
   my ($uniqname) = @_;
-  my $agent      = get_login_agent();
 
+  my $agent = get_login_agent();
   $agent->get(sprintf($EXPORT_URL, $uniqname));
   $agent->follow_meta_redirect(ignore_wait => 1);
 
@@ -89,14 +96,14 @@ sub add_to_summary {
   my @headers = @EXPORT_HEADERS;
   splice(@headers, 0, 2);
 
-  my $csv     = Class::CSV->parse(filename => $file, fields => \@headers);
-  my @lines   = splice(@{$csv->lines()}, 0, 1);
+  my $csv = Class::CSV->parse(filename => $file, fields => \@headers);
+  splice(@{$csv->lines()}, 0, 1);
 
-  foreach my $line (@lines) {
-    my $result         = {map {$_ => $line->$_} @headers};
+  foreach my $line (@{$csv->lines()}) {
+    my $result = {map {$_ => $line->$_} @headers};
     $result->{student} = $uniqname;
     $result->{empl_id} = $empl_id;
-    
+
     $summary->add_line($result);
   }
 
