@@ -16,24 +16,23 @@ Readonly::Scalar my $EXPORT_URL    => qq{$UMLESSONS_URL/2k/manage/lesson/reports
 Readonly::Scalar my $STUDENT_LIST  => $ARGV[0];
 Readonly::Scalar my $SUMMARY       => q{studnet_survey_summary.csv};
 
-Readonly::Array my @EXPORT_HEADERS  => (qw(student number setup submitted umid uniqname respondent duration q1 q2 q3 q4 q5 q6));
+Readonly::Array my @EXPORT_HEADERS  => (qw(student empl_id number setup submitted umid uniqname respondent duration q1 q2 q3 q4 q5 q6));
 Readonly::Array my @STUDENT_HEADERS => (qw(name empl_id uniqname advisor));
 
 my $summary  = Class::CSV->new(fields => \@EXPORT_HEADERS);
-my $agent    = get_login_agent();
 my @students = get_students();
 
 $summary->add_line({map {$_ => $_} @EXPORT_HEADERS});
 
 foreach my $student_ref (@students) {
-  my $file = File::Temp->new(UNLINK => 1, DIR => '/dev/shm', SUFFIX => '.csv', );
+  my $file    = File::Temp->new(UNLINK => 0, DIR => '/dev/shm', SUFFIX => '.csv', );
   my $results = get_results($student_ref->{uniqname});
 
   write_file($file->filename, $results);
 
   try {
     add_to_summary($file->filename, $student_ref->{uniqname});
-    say "Added results for $student_ref->{uniqname}";
+    $file->unlink_on_destroy(1);
   } catch {
     say "Failed to parse results for $student_ref->{uniqname}";
   };
@@ -76,27 +75,27 @@ sub get_students {
 
 sub get_results {
   my ($uniqname) = @_;
-  my $url = sprintf $EXPORT_URL, $uniqname;
+  my $agent      = get_login_agent();
 
-  $agent->get($url);
-  $agent->follow_meta_redirect();
+  $agent->get(sprintf($EXPORT_URL, $uniqname));
+  $agent->follow_meta_redirect(ignore_wait => 1);
 
   return $agent->content();
 }
 
 sub add_to_summary {
-  my ($file, $uniqname) = @_;
+  my ($file, $uniqname, $empl_id) = @_;
 
   my @headers = @EXPORT_HEADERS;
-  shift @headers;
+  splice(@headers, 0, 2);
 
-  my $csv   = Class::CSV->parse(filename => $file, fields => \@headers);
-  my @lines = @{$csv->lines()};
+  my $csv     = Class::CSV->parse(filename => $file, fields => \@headers);
+  my @lines   = splice(@{$csv->lines()}, 0, 1);
 
-  shift @lines;
   foreach my $line (@lines) {
     my $result         = {map {$_ => $line->$_} @headers};
     $result->{student} = $uniqname;
+    $result->{empl_id} = $empl_id;
     
     $summary->add_line($result);
   }
