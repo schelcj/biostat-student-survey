@@ -3,7 +3,6 @@
 use Modern::Perl;
 use WWW::Mechanize;
 use YAML qw(LoadFile);
-use Data::Dumper;
 use Readonly;
 use Text::Roman;
 use File::Slurp qw(read_file);
@@ -18,6 +17,7 @@ Readonly::Scalar my $UMLESSONS_URL       => q{https://lessons.ummu.umich.edu};
 Readonly::Scalar my $STUDENT_LIST        => $ARGV[0];
 Readonly::Scalar my $PUBLISH_DATE_FORMAT => q{%x %I:%S %p};
 Readonly::Scalar my $SUMMARY             => q{This survey is part of the Annual Student Evaluation in the Department of Biostatistics, School of Public Health. Please choose the options that best describe your student's academic performance and performance as a GSI and/or GSRA. Please provide some written comments on each student in the boxes provided, if applicable. These comments will be used to prepare the evaluation letter sent to each student.};
+Readonly::Scalar my $PUBLISH             => 0;
 
 Readonly::Array my @STUDENT_HEADERS => (qw(name empl_id uniqname advisor));
 
@@ -60,17 +60,22 @@ foreach my $student_ref (@students) {
   my $full_name = autoformat qq($student_ref->{first_name} $student_ref->{last_name}), { case => 'title' };
   $full_name =~ s/[\r\n]+//g;
 
-  say "Deleting if a survey already exists for $full_name ( $student_ref->{uniqname} )";
-  delete_survey($student_ref->{uniqname});
+  if ($PUBLISH) {
+    say "Deleting if a survey already exists for $full_name ( $student_ref->{uniqname} )";
+    delete_survey($student_ref->{uniqname});
 
-  say "Creating survey for $full_name ( $student_ref->{uniqname} )";
-  create_survey($student_ref->{uniqname}, $full_name);
+    say "Creating survey for $full_name ( $student_ref->{uniqname} )";
+    create_survey($student_ref->{uniqname}, $full_name);
 
-  say "\tAdding questions to survey";
-  add_questions($student_ref->{uniqname});
+    say "\tAdding questions to survey";
+    add_questions($student_ref->{uniqname});
 
-  say "\tPublishing survey";
-  publish_survey($student_ref->{uniqname});
+    say "\tPublishing survey";
+    publish_survey($student_ref->{uniqname});
+  } else {
+    say "Freezing survey for $full_name ( $student_ref->{uniqname} )";
+    freeze_survey($student_ref->{uniqname});
+  }
 }
 
 sub get_students {
@@ -175,6 +180,18 @@ sub publish_survey {
       WhenCanReview => 'FALSE',
       WhenDue       => undef,
       WhenOpen      => $now->strftime($PUBLISH_DATE_FORMAT),
+    }
+  );
+
+  return;
+}
+
+sub freeze_survey {
+  my ($uniqname) = @_;
+
+  $agent->post(
+    qq($UMLESSONS_URL/2k/manage/lesson/publish/unit_4631/$uniqname#freeze), {
+      op => 'freeze',
     }
   );
 
