@@ -102,7 +102,7 @@ sub add_to_summary {
   foreach my $line (@{$csv->lines()}) {
     my $result = {map {$_ => $line->$_} @headers};
     $result->{student} = $uniqname;
-    $result->{empl_id} = $empl_id;
+    $result->{empl_id} = qq{'$empl_id};
 
     $summary->add_line($result);
   }
