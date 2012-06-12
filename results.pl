@@ -16,7 +16,7 @@ Readonly::Scalar my $EXPORT_URL    => qq{$UMLESSONS_URL/2k/manage/lesson/reports
 Readonly::Scalar my $STUDENT_LIST  => $ARGV[0];
 Readonly::Scalar my $SUMMARY       => q{studnet_survey_summary.csv};
 
-Readonly::Array my @EXPORT_HEADERS  => (qw(student empl_id number setup submitted umid uniqname respondent duration q1 q2 q3 q4 q5 q6));
+Readonly::Array my @EXPORT_HEADERS  => (qw(student emplid number setup submitted umid uniqname respondent duration q1 q2 q3 q4 q5 q6));
 Readonly::Array my @STUDENT_HEADERS => (qw(name empl_id uniqname advisor));
 
 my $summary  = Class::CSV->new(fields => \@EXPORT_HEADERS);
@@ -31,6 +31,7 @@ foreach my $student_ref (@students) {
     add_to_summary($export, $student_ref->{uniqname}, $student_ref->{empl_id});
   } catch {
     say "Failed to parse results for $student_ref->{uniqname}";
+    say @_;
     unlink $export;
   };
 }
@@ -102,7 +103,7 @@ sub add_to_summary {
   foreach my $line (@{$csv->lines()}) {
     my $result = {map {$_ => $line->$_} @headers};
     $result->{student} = $uniqname;
-    $result->{empl_id} = qq{'$empl_id};
+    $result->{emplid}  = qq{'$empl_id};
 
     $summary->add_line($result);
   }
